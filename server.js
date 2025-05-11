@@ -10,6 +10,7 @@ const io = socketIo(server, { cors: { origin: '*' } });
 const PORT = 80;
 
 app.use(cors());
+app.use(express.static('public'));
 app.use(bodyParser.json());
 
 const CANVAS_WIDTH = 2000;
