@@ -9,7 +9,7 @@
 </head>
 <body>
   <h2>r/place Clone</h2>
-  <canvas id="canvas" width="800" height="800"></canvas>
+  <canvas id="canvas" width="1000" height="1000"></canvas>
   <div id="controls">
     <input type="color" id="colorPicker" value="#000000">
     <button onclick="login()">Login</button>
@@ -23,7 +23,7 @@
   <script>
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    const socket = io('http://localhost:3000');
+    const socket = io('http://localhost:80');
     const size = 2000;
     let color = document.getElementById('colorPicker').value;
     let sessionId = localStorage.getItem('sessionId');
@@ -95,7 +95,7 @@
     function register() {
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
-      fetch('http://localhost:3000/register', {
+      fetch('/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
@@ -105,7 +105,7 @@
     function login() {
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
-      fetch('http://localhost:3000/login', {
+      fetch('/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
