@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>r/place clone</title>
+  <style>
+    canvas { border: 1px solid #000; image-rendering: pixelated; cursor: crosshair; }
+    #controls { margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h2>r/place Clone</h2>
+  <canvas id="canvas" width="800" height="800"></canvas>
+  <div id="controls">
+    <input type="color" id="colorPicker" value="#000000">
+    <button onclick="login()">Login</button>
+    <button onclick="register()">Register</button>
+    <input id="username" placeholder="Username">
+    <input id="password" type="password" placeholder="Password">
+    <p>Scroll to zoom, drag to move.</p>
+  </div>
+
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const socket = io('http://localhost:3000');
+    const size = 2000;
+    let color = document.getElementById('colorPicker').value;
+    let sessionId = localStorage.getItem('sessionId');
+
+    let scale = 1;
+    let offsetX = 0;
+    let offsetY = 0;
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
+
+    document.getElementById('colorPicker').onchange = e => color = e.target.value;
+
+    canvas.addEventListener('mousedown', e => {
+      isDragging = true;
+      dragStart = { x: e.clientX - offsetX, y: e.clientY - offsetY };
+    });
+
+    canvas.addEventListener('mouseup', () => isDragging = false);
+    canvas.addEventListener('mousemove', e => {
+      if (isDragging) {
+        offsetX = e.clientX - dragStart.x;
+        offsetY = e.clientY - dragStart.y;
+        render();
+      }
+    });
+
+    canvas.addEventListener('wheel', e => {
+      const zoomFactor = 1.1;
+      if (e.deltaY < 0) scale *= zoomFactor;
+      else scale /= zoomFactor;
+      render();
+    });
+
+    canvas.onclick = e => {
+      if (!sessionId) return alert('Login first');
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left - offsetX) / scale);
+      const y = Math.floor((e.clientY - rect.top - offsetY) / scale);
+      socket.emit('placePixel', { x, y, color });
+    };
+
+    const pixels = [];
+    socket.on('canvasState', (canvasData) => {
+      canvasData.forEach((row, y) => {
+        pixels[y] = row.slice();
+      });
+      render();
+    });
+
+    socket.on('pixelUpdate', ({ x, y, color }) => {
+      if (!pixels[y]) pixels[y] = [];
+      pixels[y][x] = color;
+      ctx.fillStyle = color;
+      ctx.fillRect(x * scale + offsetX, y * scale + offsetY, scale, scale);
+    });
+
+    socket.on('errorMsg', msg => alert(msg));
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let y = 0; y < pixels.length; y++) {
+        for (let x = 0; x < (pixels[y] || []).length; x++) {
+          ctx.fillStyle = pixels[y][x] || '#FFFFFF';
+          ctx.fillRect(x * scale + offsetX, y * scale + offsetY, scale, scale);
+        }
+      }
+    }
+
+    function register() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      fetch('http://localhost:3000/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      }).then(r => r.text()).then(alert);
+    }
+
+    function login() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      fetch('http://localhost:3000/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      }).then(r => r.json()).then(data => {
+        sessionId = data.sessionId;
+        localStorage.setItem('sessionId', sessionId);
+        socket.emit('auth', { sessionId });
+      }).catch(() => alert('Login failed'));
+    }
+  </script>
+</body>
+</html>
