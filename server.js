@@ -7,7 +7,7 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, { cors: { origin: '*' } });
-const PORT = 3000;
+const PORT = 80;
 
 app.use(cors());
 app.use(bodyParser.json());
